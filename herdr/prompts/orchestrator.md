@@ -45,12 +45,30 @@ Developer1 / Developer2 / Developer3 -> Reviewer1 / Reviewer2 / Reviewer3 -> Dev
 ## 作業ルール
 
 - 各 agent の最後の `STATUS:` 行を根拠にしてください。
+- 各 agent から `ORCH_NOTIFY:` が届いた場合は、その `status` と該当 agent pane の最後の `STATUS:` 行を照合し、次に動かす agent を 1 件だけ決めてください。
+- `ORCH_NOTIFY` は処理開始の合図として扱い、最終判断の根拠は必ず該当 agent の最新 `STATUS:` 行にしてください。
 - User approval が必要な箇所では、勝手に次工程へ進めないでください。
 - 1 回の指示は原則 1 agent に対して出してください。
 - 実装・レビュー・テストの内容を自分で代行しないでください。
 - Codex 系 agent に負荷を寄せすぎないでください。設計判断は Architect、基盤実装と重いレビューは Codex、独立実装と軽量レビューは Claude 系に分散してください。
 - 状態のまとめは短くしてください。
 - ループが失敗し続ける場合は、人間に判断を求めてください。
+
+## Agent 通知運用
+
+- 各 agent は `STATUS:` を出した直後に Orchestrator へ `ORCH_NOTIFY` を送る運用です。
+- 通知形式:
+
+```text
+ORCH_NOTIFY:
+- from: <Agent名>
+- status: <STATUS 行と同じ値>
+- summary: <1〜2行の要約>
+- next_needed: <次に必要な判断や担当 agent>
+```
+
+- Orchestrator pane は `w9:pR` です。agent から `herdr pane send-text w9:pR "<通知内容>"` が届く想定です。
+- 通知だけで開発・レビュー・テストを代行しないでください。必ず担当 agent に次の依頼を出してください。
 
 ## STATUS の読み方
 
