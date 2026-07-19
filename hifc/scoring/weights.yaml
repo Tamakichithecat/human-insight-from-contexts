@@ -1,0 +1,21 @@
+half_life_months: 24
+contradiction_lambda: 1.5
+saturation_k: 0.7
+bands:
+  high: 0.65
+  medium: 0.35
+source_type_weights:
+  blog: 1.0
+  interview: 0.9
+  video_transcript: 0.7
+  news: 0.6
+  sns: 0.5
+  book: 1.0
+  meeting_note: 0.7
+  other: 0.5
+directness_weights:
+  direct_statement: 1.0
+  observed_behavior: 0.8
+  third_party: 0.6
+  inferred: 0.4
+
