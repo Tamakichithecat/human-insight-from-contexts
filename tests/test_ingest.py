@@ -252,6 +252,19 @@ def test_validate_public_url_rejects_private_rfc1918_address(monkeypatch):
         url_source._validate_public_url("http://internal-service/")
 
 
+def test_validate_public_url_rejects_cgnat_shared_address_space(monkeypatch):
+    # 100.64.0.0/10 (RFC 6598) is not `ipaddress.is_private` in Python, so a
+    # denylist keyed on is_private/is_loopback/... alone would miss it; the
+    # is_global-based allowlist must reject it anyway.
+    monkeypatch.setattr(
+        url_source.socket,
+        "getaddrinfo",
+        lambda host, port, *a, **k: [(None, None, None, None, ("100.64.0.1", 0))],
+    )
+    with pytest.raises(UnsafeUrlError):
+        url_source._validate_public_url("http://cgnat-host/")
+
+
 def test_validate_public_url_allows_public_address(monkeypatch):
     monkeypatch.setattr(
         url_source.socket,

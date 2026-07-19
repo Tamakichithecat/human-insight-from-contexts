@@ -36,15 +36,18 @@ class UnsafeUrlError(IngestError):
 
 
 def _is_public_address(address: str) -> bool:
+    """Allowlist a resolved address as safe to connect to.
+
+    A denylist of specific ranges (private/loopback/link-local/reserved/...)
+    misses anything not explicitly enumerated — e.g. CGNAT/shared address space
+    (100.64.0.0/10, RFC 6598) is not `is_private` in Python's ipaddress module,
+    nor are IETF protocol assignments, TEST-NET ranges, or benchmarking space.
+    `is_global` is itself an allowlist (true only for addresses that are
+    actually publicly routable), so use that instead and additionally exclude
+    multicast, which `is_global` alone does not rule out.
+    """
     ip = ipaddress.ip_address(address)
-    return not (
-        ip.is_private
-        or ip.is_loopback
-        or ip.is_link_local
-        or ip.is_reserved
-        or ip.is_multicast
-        or ip.is_unspecified
-    )
+    return ip.is_global and not ip.is_multicast
 
 
 def _resolve_public_addresses(hostname: str, url: str) -> list[tuple]:
