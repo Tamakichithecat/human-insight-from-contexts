@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import socket
 from datetime import date
 
 import httpx
@@ -225,7 +226,7 @@ def test_validate_public_url_rejects_loopback(monkeypatch):
     monkeypatch.setattr(
         url_source.socket,
         "getaddrinfo",
-        lambda host, port: [(None, None, None, None, ("127.0.0.1", 0))],
+        lambda host, port, *a, **k: [(None, None, None, None, ("127.0.0.1", 0))],
     )
     with pytest.raises(UnsafeUrlError):
         url_source._validate_public_url("http://localhost:8080/admin")
@@ -235,7 +236,7 @@ def test_validate_public_url_rejects_cloud_metadata_address(monkeypatch):
     monkeypatch.setattr(
         url_source.socket,
         "getaddrinfo",
-        lambda host, port: [(None, None, None, None, ("169.254.169.254", 0))],
+        lambda host, port, *a, **k: [(None, None, None, None, ("169.254.169.254", 0))],
     )
     with pytest.raises(UnsafeUrlError):
         url_source._validate_public_url("http://metadata.internal/latest/meta-data/")
@@ -245,7 +246,7 @@ def test_validate_public_url_rejects_private_rfc1918_address(monkeypatch):
     monkeypatch.setattr(
         url_source.socket,
         "getaddrinfo",
-        lambda host, port: [(None, None, None, None, ("10.0.0.5", 0))],
+        lambda host, port, *a, **k: [(None, None, None, None, ("10.0.0.5", 0))],
     )
     with pytest.raises(UnsafeUrlError):
         url_source._validate_public_url("http://internal-service/")
@@ -255,13 +256,13 @@ def test_validate_public_url_allows_public_address(monkeypatch):
     monkeypatch.setattr(
         url_source.socket,
         "getaddrinfo",
-        lambda host, port: [(None, None, None, None, ("93.184.216.34", 0))],
+        lambda host, port, *a, **k: [(None, None, None, None, ("93.184.216.34", 0))],
     )
     url_source._validate_public_url("https://example.test/article")  # must not raise
 
 
 def test_validate_public_url_wraps_dns_failure(monkeypatch):
-    def fake_getaddrinfo(host, port):
+    def fake_getaddrinfo(host, port, *a, **k):
         raise OSError("name resolution failed")
 
     monkeypatch.setattr(url_source.socket, "getaddrinfo", fake_getaddrinfo)
@@ -270,7 +271,7 @@ def test_validate_public_url_wraps_dns_failure(monkeypatch):
 
 
 def test_fetch_html_rejects_redirect_to_internal_address(monkeypatch):
-    def fake_getaddrinfo(host, port):
+    def fake_getaddrinfo(host, port, *a, **k):
         try:
             import ipaddress as _ip
 
@@ -300,7 +301,7 @@ def test_build_source_from_url_rejects_local_target(monkeypatch):
     monkeypatch.setattr(
         url_source.socket,
         "getaddrinfo",
-        lambda host, port: [(None, None, None, None, ("127.0.0.1", 0))],
+        lambda host, port, *a, **k: [(None, None, None, None, ("127.0.0.1", 0))],
     )
     with pytest.raises(UnsafeUrlError):
         build_source_from_url(
@@ -309,3 +310,89 @@ def test_build_source_from_url_rejects_local_target(monkeypatch):
             source_type="news",
             author_perspective="third_party",
         )
+
+
+def _public_addrinfo(address: str = "93.184.216.34") -> list[tuple]:
+    return [(socket.AF_INET, socket.SOCK_STREAM, 0, "", (address, 0))]
+
+
+def _fake_response(status: int, url: str, *, text: str) -> httpx.Response:
+    return httpx.Response(status, request=httpx.Request("GET", url), text=text)
+
+
+def test_fetch_html_wraps_http_status_error_as_ingest_error(monkeypatch):
+    monkeypatch.setattr(
+        url_source.socket, "getaddrinfo", lambda host, port, *a, **k: _public_addrinfo()
+    )
+    monkeypatch.setattr(
+        url_source.httpx,
+        "get",
+        lambda url, **kwargs: _fake_response(404, url, text="not found"),
+    )
+
+    with pytest.raises(IngestError) as exc_info:
+        url_source.fetch_html("https://example.test/missing")
+    assert not isinstance(exc_info.value, url_source.UnsafeUrlError)
+    assert "404" in str(exc_info.value)
+
+
+def test_fetch_html_wraps_server_error_as_ingest_error(monkeypatch):
+    monkeypatch.setattr(
+        url_source.socket, "getaddrinfo", lambda host, port, *a, **k: _public_addrinfo()
+    )
+    monkeypatch.setattr(
+        url_source.httpx,
+        "get",
+        lambda url, **kwargs: _fake_response(503, url, text="unavailable"),
+    )
+
+    with pytest.raises(IngestError):
+        url_source.fetch_html("https://example.test/down")
+
+
+def test_pinned_resolution_overrides_a_rebinding_resolver(monkeypatch):
+    def rebinding_getaddrinfo(host, port, *args, **kwargs):
+        # Simulates an attacker's DNS server: any *unpinned* lookup for this host
+        # now resolves to an internal address instead of the one that was validated.
+        return [(socket.AF_INET, socket.SOCK_STREAM, 0, "", ("10.0.0.9", port or 0))]
+
+    monkeypatch.setattr(url_source.socket, "getaddrinfo", rebinding_getaddrinfo)
+
+    validated = [(socket.AF_INET, socket.SOCK_STREAM, 0, "", ("93.184.216.34", 0))]
+    with url_source._pinned_resolution("example.test", validated):
+        pinned_result = socket.getaddrinfo("example.test", 443)
+    assert pinned_result[0][4][0] == "93.184.216.34"
+
+    # Outside the pin, resolution reverts to the (attacker-controlled) resolver.
+    assert socket.getaddrinfo("example.test", 443)[0][4][0] == "10.0.0.9"
+
+
+def test_fetch_html_connects_to_validated_address_despite_dns_rebinding(monkeypatch):
+    lookups = {"n": 0}
+
+    def rebinding_getaddrinfo(host, port, *args, **kwargs):
+        lookups["n"] += 1
+        if lookups["n"] == 1:
+            return [(socket.AF_INET, socket.SOCK_STREAM, 0, "", ("93.184.216.34", port or 0))]
+        # A rebinding attacker flips the answer for any *later*, unpinned lookup.
+        return [(socket.AF_INET, socket.SOCK_STREAM, 0, "", ("127.0.0.1", port or 0))]
+
+    monkeypatch.setattr(url_source.socket, "getaddrinfo", rebinding_getaddrinfo)
+
+    connected_to = {}
+
+    def fake_get(target_url, **kwargs):
+        # Mirrors what httpcore's sync backend does: resolve again at connect time.
+        host = url_source.urlparse(target_url).hostname
+        info = socket.getaddrinfo(host, 443)
+        connected_to["address"] = info[0][4][0]
+        return httpx.Response(200, request=httpx.Request("GET", target_url), text="ok")
+
+    monkeypatch.setattr(url_source.httpx, "get", fake_get)
+
+    url_source.fetch_html("https://example.test/article")
+
+    assert connected_to["address"] == "93.184.216.34"
+    # The pin intercepts the connect-time lookup entirely: the (rebinding) real
+    # resolver is only ever consulted once, at validation time.
+    assert lookups["n"] == 1

@@ -3,6 +3,8 @@ from __future__ import annotations
 import ipaddress
 import json
 import socket
+import threading
+from contextlib import contextmanager
 from datetime import date
 from urllib.parse import urljoin, urlparse
 
@@ -24,68 +26,115 @@ _USER_AGENT = (
     "(KHTML, like Gecko) Chrome/120.0 Safari/537.36"
 )
 
+# Guards the socket.getaddrinfo monkeypatch in _pinned_resolution below so two
+# ingest calls can never interleave their pins if this is ever used from threads.
+_resolution_lock = threading.Lock()
+
 
 class UnsafeUrlError(IngestError):
     """Raised when a URL targets a non-public/internal network address (SSRF guard)."""
 
 
-def _reject_non_public_addresses(hostname: str, url: str) -> None:
+def _is_public_address(address: str) -> bool:
+    ip = ipaddress.ip_address(address)
+    return not (
+        ip.is_private
+        or ip.is_loopback
+        or ip.is_link_local
+        or ip.is_reserved
+        or ip.is_multicast
+        or ip.is_unspecified
+    )
+
+
+def _resolve_public_addresses(hostname: str, url: str) -> list[tuple]:
     try:
-        infos = socket.getaddrinfo(hostname, None)
+        # Restrict to TCP/SOCK_STREAM: that's what socket.create_connection
+        # requests when httpx connects, and it also avoids duplicate UDP/RAW
+        # entries for the same address that would otherwise get pinned too.
+        infos = socket.getaddrinfo(hostname, None, socket.AF_UNSPEC, socket.SOCK_STREAM)
     except OSError as exc:
         raise UnsafeUrlError(f"Could not resolve host {hostname!r} for {url}: {exc}") from exc
+    if not infos:
+        raise UnsafeUrlError(f"Host {hostname!r} did not resolve to any address for {url}")
 
     for info in infos:
         address = info[4][0]
-        ip = ipaddress.ip_address(address)
-        if (
-            ip.is_private
-            or ip.is_loopback
-            or ip.is_link_local
-            or ip.is_reserved
-            or ip.is_multicast
-            or ip.is_unspecified
-        ):
+        if not _is_public_address(address):
             raise UnsafeUrlError(
                 f"Refusing to fetch {url}: host {hostname!r} resolves to "
                 f"non-public address {address}"
             )
+    return infos
 
 
-def _validate_public_url(url: str) -> None:
+def _validate_public_url(url: str) -> tuple[str, list[tuple]]:
     """Guard against SSRF: only allow http(s) requests to publicly-routable hosts.
 
     Ingest URLs come from the operator pasting a link (possibly one shared by a
     third party), so a malicious/shortened URL could otherwise point the fetcher at
     localhost, RFC1918 ranges, or a cloud metadata endpoint (169.254.169.254).
+
+    Returns the hostname and the addrinfo that was validated, so the caller can
+    pin the actual TCP connection to these exact addresses via
+    `_pinned_resolution` — resolving the hostname again at connect time would
+    reopen a DNS-rebinding gap between validation and connection.
     """
     parsed = urlparse(url)
     if parsed.scheme not in _ALLOWED_SCHEMES:
         raise UnsafeUrlError(f"Unsupported URL scheme {parsed.scheme!r} in {url} (http/https only)")
     if not parsed.hostname:
         raise UnsafeUrlError(f"URL has no hostname: {url}")
-    _reject_non_public_addresses(parsed.hostname, url)
+    return parsed.hostname, _resolve_public_addresses(parsed.hostname, url)
+
+
+@contextmanager
+def _pinned_resolution(hostname: str, addrinfo: list[tuple]):
+    """Force `socket.getaddrinfo` to resolve `hostname` to the pre-validated
+    `addrinfo` for the duration of the request.
+
+    httpx's sync transport connects via `socket.create_connection`, which calls
+    `socket.getaddrinfo` again at connect time. Without pinning, a DNS-rebinding
+    attacker could return a public address for the validation lookup above and a
+    private one for this second lookup, bypassing the SSRF guard entirely.
+    """
+    original_getaddrinfo = socket.getaddrinfo
+
+    def pinned(host, port, *args, **kwargs):
+        if host != hostname:
+            return original_getaddrinfo(host, port, *args, **kwargs)
+        resolved_port = port if isinstance(port, int) else 0
+        return [
+            (family, socktype, proto, canonname, (sockaddr[0], resolved_port, *sockaddr[2:]))
+            for family, socktype, proto, canonname, sockaddr in addrinfo
+        ]
+
+    with _resolution_lock:
+        socket.getaddrinfo = pinned
+        try:
+            yield
+        finally:
+            socket.getaddrinfo = original_getaddrinfo
 
 
 def fetch_html(url: str, *, timeout_seconds: float = _TIMEOUT_SECONDS) -> str:
     current_url = url
     for _ in range(_MAX_REDIRECTS + 1):
-        _validate_public_url(current_url)
+        hostname, addrinfo = _validate_public_url(current_url)
         try:
-            response = httpx.get(
-                current_url,
-                timeout=timeout_seconds,
-                follow_redirects=False,
-                headers={"User-Agent": _USER_AGENT},
-            )
+            with _pinned_resolution(hostname, addrinfo):
+                response = httpx.get(
+                    current_url,
+                    timeout=timeout_seconds,
+                    follow_redirects=False,
+                    headers={"User-Agent": _USER_AGENT},
+                )
+                if response.has_redirect_location:
+                    current_url = urljoin(current_url, response.headers["location"])
+                    continue
+                response.raise_for_status()
         except httpx.HTTPError as exc:
             raise IngestError(f"Failed to fetch URL {current_url}: {exc}") from exc
-
-        if response.has_redirect_location:
-            current_url = urljoin(current_url, response.headers["location"])
-            continue
-
-        response.raise_for_status()
         return response.text
 
     raise IngestError(f"Too many redirects starting from {url}")
