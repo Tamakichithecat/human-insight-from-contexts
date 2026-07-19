@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import ipaddress
 import json
+import socket
 from datetime import date
+from urllib.parse import urljoin, urlparse
 
 import httpx
 import trafilatura
@@ -12,6 +15,8 @@ from hifc.schemas import SourceDocument
 from hifc.schemas.source import AuthorPerspective, SourceType
 
 _TIMEOUT_SECONDS = 30.0
+_MAX_REDIRECTS = 5
+_ALLOWED_SCHEMES = {"http", "https"}
 # A generic UA (e.g. "hifc-ingest/0.1") gets 403'd by sites like Wikipedia that
 # block non-browser clients; a common desktop browser UA avoids that.
 _USER_AGENT = (
@@ -20,18 +25,70 @@ _USER_AGENT = (
 )
 
 
-def fetch_html(url: str, *, timeout_seconds: float = _TIMEOUT_SECONDS) -> str:
+class UnsafeUrlError(IngestError):
+    """Raised when a URL targets a non-public/internal network address (SSRF guard)."""
+
+
+def _reject_non_public_addresses(hostname: str, url: str) -> None:
     try:
-        response = httpx.get(
-            url,
-            timeout=timeout_seconds,
-            follow_redirects=True,
-            headers={"User-Agent": _USER_AGENT},
-        )
+        infos = socket.getaddrinfo(hostname, None)
+    except OSError as exc:
+        raise UnsafeUrlError(f"Could not resolve host {hostname!r} for {url}: {exc}") from exc
+
+    for info in infos:
+        address = info[4][0]
+        ip = ipaddress.ip_address(address)
+        if (
+            ip.is_private
+            or ip.is_loopback
+            or ip.is_link_local
+            or ip.is_reserved
+            or ip.is_multicast
+            or ip.is_unspecified
+        ):
+            raise UnsafeUrlError(
+                f"Refusing to fetch {url}: host {hostname!r} resolves to "
+                f"non-public address {address}"
+            )
+
+
+def _validate_public_url(url: str) -> None:
+    """Guard against SSRF: only allow http(s) requests to publicly-routable hosts.
+
+    Ingest URLs come from the operator pasting a link (possibly one shared by a
+    third party), so a malicious/shortened URL could otherwise point the fetcher at
+    localhost, RFC1918 ranges, or a cloud metadata endpoint (169.254.169.254).
+    """
+    parsed = urlparse(url)
+    if parsed.scheme not in _ALLOWED_SCHEMES:
+        raise UnsafeUrlError(f"Unsupported URL scheme {parsed.scheme!r} in {url} (http/https only)")
+    if not parsed.hostname:
+        raise UnsafeUrlError(f"URL has no hostname: {url}")
+    _reject_non_public_addresses(parsed.hostname, url)
+
+
+def fetch_html(url: str, *, timeout_seconds: float = _TIMEOUT_SECONDS) -> str:
+    current_url = url
+    for _ in range(_MAX_REDIRECTS + 1):
+        _validate_public_url(current_url)
+        try:
+            response = httpx.get(
+                current_url,
+                timeout=timeout_seconds,
+                follow_redirects=False,
+                headers={"User-Agent": _USER_AGENT},
+            )
+        except httpx.HTTPError as exc:
+            raise IngestError(f"Failed to fetch URL {current_url}: {exc}") from exc
+
+        if response.has_redirect_location:
+            current_url = urljoin(current_url, response.headers["location"])
+            continue
+
         response.raise_for_status()
-    except httpx.HTTPError as exc:
-        raise IngestError(f"Failed to fetch URL {url}: {exc}") from exc
-    return response.text
+        return response.text
+
+    raise IngestError(f"Too many redirects starting from {url}")
 
 
 def extract_article(html: str, url: str) -> dict:

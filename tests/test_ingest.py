@@ -2,19 +2,23 @@ from __future__ import annotations
 
 from datetime import date
 
+import httpx
 import pytest
 
 from hifc.ingest import (
     IngestError,
+    UnsafeUrlError,
     YoutubeTranscriptUnavailable,
     build_source_from_file,
     build_source_from_html,
     build_source_from_paste,
+    build_source_from_url,
     build_source_from_youtube,
     load_csv_sources,
     locate_quote,
     source_id_from_text,
     split_into_chunks,
+    url_source,
     youtube_source,
 )
 from hifc.storage import source_content_hash
@@ -210,3 +214,98 @@ def test_build_source_from_youtube_builds_source_document(monkeypatch):
     assert source.source_type == "video_transcript"
     assert source.origin == "https://youtu.be/dQw4w9WgXcQ"
     assert "配信の冒頭コメントです" in source.raw_text
+
+
+def test_validate_public_url_rejects_disallowed_scheme():
+    with pytest.raises(UnsafeUrlError):
+        url_source._validate_public_url("file:///etc/passwd")
+
+
+def test_validate_public_url_rejects_loopback(monkeypatch):
+    monkeypatch.setattr(
+        url_source.socket,
+        "getaddrinfo",
+        lambda host, port: [(None, None, None, None, ("127.0.0.1", 0))],
+    )
+    with pytest.raises(UnsafeUrlError):
+        url_source._validate_public_url("http://localhost:8080/admin")
+
+
+def test_validate_public_url_rejects_cloud_metadata_address(monkeypatch):
+    monkeypatch.setattr(
+        url_source.socket,
+        "getaddrinfo",
+        lambda host, port: [(None, None, None, None, ("169.254.169.254", 0))],
+    )
+    with pytest.raises(UnsafeUrlError):
+        url_source._validate_public_url("http://metadata.internal/latest/meta-data/")
+
+
+def test_validate_public_url_rejects_private_rfc1918_address(monkeypatch):
+    monkeypatch.setattr(
+        url_source.socket,
+        "getaddrinfo",
+        lambda host, port: [(None, None, None, None, ("10.0.0.5", 0))],
+    )
+    with pytest.raises(UnsafeUrlError):
+        url_source._validate_public_url("http://internal-service/")
+
+
+def test_validate_public_url_allows_public_address(monkeypatch):
+    monkeypatch.setattr(
+        url_source.socket,
+        "getaddrinfo",
+        lambda host, port: [(None, None, None, None, ("93.184.216.34", 0))],
+    )
+    url_source._validate_public_url("https://example.test/article")  # must not raise
+
+
+def test_validate_public_url_wraps_dns_failure(monkeypatch):
+    def fake_getaddrinfo(host, port):
+        raise OSError("name resolution failed")
+
+    monkeypatch.setattr(url_source.socket, "getaddrinfo", fake_getaddrinfo)
+    with pytest.raises(UnsafeUrlError):
+        url_source._validate_public_url("https://does-not-resolve.test/")
+
+
+def test_fetch_html_rejects_redirect_to_internal_address(monkeypatch):
+    def fake_getaddrinfo(host, port):
+        try:
+            import ipaddress as _ip
+
+            _ip.ip_address(host)
+            return [(None, None, None, None, (host, 0))]
+        except ValueError:
+            return [(None, None, None, None, ("93.184.216.34", 0))]
+
+    monkeypatch.setattr(url_source.socket, "getaddrinfo", fake_getaddrinfo)
+
+    call_count = {"n": 0}
+
+    def fake_get(url, **kwargs):
+        call_count["n"] += 1
+        if url == "https://example.test/redirect":
+            return httpx.Response(302, headers={"location": "http://169.254.169.254/secret"})
+        raise AssertionError(f"unexpected fetch of {url}")
+
+    monkeypatch.setattr(url_source.httpx, "get", fake_get)
+
+    with pytest.raises(UnsafeUrlError):
+        url_source.fetch_html("https://example.test/redirect")
+    assert call_count["n"] == 1
+
+
+def test_build_source_from_url_rejects_local_target(monkeypatch):
+    monkeypatch.setattr(
+        url_source.socket,
+        "getaddrinfo",
+        lambda host, port: [(None, None, None, None, ("127.0.0.1", 0))],
+    )
+    with pytest.raises(UnsafeUrlError):
+        build_source_from_url(
+            "http://127.0.0.1:9000/internal-dashboard",
+            person_id="taro",
+            source_type="news",
+            author_perspective="third_party",
+        )
