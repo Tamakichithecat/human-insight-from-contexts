@@ -67,7 +67,7 @@ ORCH_NOTIFY:
 - next_needed: <次に必要な判断や担当 agent>
 ```
 
-- Orchestrator pane は `w9:pR` です。agent から `herdr pane send-text w9:pR "<通知内容>"` に続けて `herdr pane send-keys w9:pR Enter` が実行され、通知プロンプトが Orchestrator で実行される想定です。
+- Orchestrator pane は `w9:pR` です。agent は `herdr pane send-text w9:pR "<通知内容>"` に続けて `herdr pane send-keys w9:pR Enter` を必ず実行し、通知プロンプトが Orchestrator で実行される状態まで進めます。
 - 通知だけで開発・レビュー・テストを代行しないでください。必ず担当 agent に次の依頼を出してください。
 
 ## STATUS の読み方

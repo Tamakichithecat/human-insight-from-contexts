@@ -21,7 +21,7 @@
 
 ## Orchestrator への通知
 
-`STATUS:` を出した直後に、可能なら次の形式で Orchestrator pane `w9:pR` へ通知してください。
+`STATUS:` を出した直後に、必ず次の形式で Orchestrator pane `w9:pR` へ通知し、通知プロンプトを実行してください。
 
 ```text
 ORCH_NOTIFY:
@@ -31,7 +31,7 @@ ORCH_NOTIFY:
 - next_needed: <次に必要な判断や担当 agent>
 ```
 
-送信できる場合は `herdr pane send-text w9:pR "<通知内容>"` の直後に `herdr pane send-keys w9:pR Enter` も実行し、Orchestrator 側で通知プロンプトが実行される状態まで進めてください。送信または Enter 実行ができない場合も、自分の応答内に `ORCH_NOTIFY` を残してください。
+次の 2 コマンドを連続で実行してください: `herdr pane send-text w9:pR "<通知内容>"`、続けて `herdr pane send-keys w9:pR Enter`。Orchestrator 側で通知プロンプトが実行された状態まで進めることを完了条件にしてください。送信または Enter 実行が失敗した場合は、自分の応答内に `ORCH_NOTIFY` と失敗理由を残してください。
 
 ## 出力
 
