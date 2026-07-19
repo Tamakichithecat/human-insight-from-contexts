@@ -31,7 +31,7 @@ ORCH_NOTIFY:
 - next_needed: <次に必要な判断や担当 agent>
 ```
 
-送信できる場合は `herdr pane send-text w9:pR "<通知内容>"` を使ってください。送信できない場合も、自分の応答内に `ORCH_NOTIFY` を残してください。
+送信できる場合は `herdr pane send-text w9:pR "<通知内容>"` の直後に `herdr pane send-keys w9:pR Enter` も実行し、Orchestrator 側で通知プロンプトが実行される状態まで進めてください。送信または Enter 実行ができない場合も、自分の応答内に `ORCH_NOTIFY` を残してください。
 
 ## 出力
 
