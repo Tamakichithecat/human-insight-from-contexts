@@ -1,0 +1,35 @@
+{
+  "source_id": "src-99823848e336303d",
+  "person_id": "naval-ravikant",
+  "content_hash": "99823848e336303d60305c127fd8437fd78754ea7b84d1ea6c527729d9211a6e",
+  "source_type": "sns",
+  "origin": "paste",
+  "title": "How to Get Rich (thread)",
+  "author_perspective": "first_person",
+  "published_at": "2018-05-31",
+  "retrieved_at": "2026-07-19T12:32:52.560124Z",
+  "language": "ja",
+  "raw_text": "Seek wealth, not money or status. Wealth is having assets that earn while you sleep. Money is how we transfer time and wealth. Status is your place in the social hierarchy. You're not going to get rich renting out your time. You must own equity, a piece of a business, to gain your financial freedom. You will get rich by giving society what it wants but does not yet know how to get, at scale. Pick an industry where you can play long-term games with long-term people. All the returns in life, whether in wealth, relationships, or knowledge, come from compound interest. Specific knowledge is knowledge that you cannot be trained for. If society can train you, it can train someone else and replace you.",
+  "chunks": [
+    {
+      "chunk_id": "src-99823848e336303d-s1",
+      "text": "Seek wealth, not money or status. Wealth is having assets that earn while you sleep. Money is how we transfer time and wealth.",
+      "locator": "sentence:1"
+    },
+    {
+      "chunk_id": "src-99823848e336303d-s2",
+      "text": "Status is your place in the social hierarchy. You're not going to get rich renting out your time. You must own equity, a piece of a business, to gain your financial freedom.",
+      "locator": "sentence:2"
+    },
+    {
+      "chunk_id": "src-99823848e336303d-s3",
+      "text": "You will get rich by giving society what it wants but does not yet know how to get, at scale. Pick an industry where you can play long-term games with long-term people. All the returns in life, whether in wealth, relationships, or knowledge, come from compound interest.",
+      "locator": "sentence:3"
+    },
+    {
+      "chunk_id": "src-99823848e336303d-s4",
+      "text": "Specific knowledge is knowledge that you cannot be trained for. If society can train you, it can train someone else and replace you.",
+      "locator": "sentence:4"
+    }
+  ]
+}

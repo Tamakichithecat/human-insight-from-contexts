@@ -3,12 +3,16 @@ from __future__ import annotations
 import typer
 
 from hifc import __version__
+from hifc.cli.ingest import app as ingest_app
+from hifc.cli.persona import app as persona_app
 
 app = typer.Typer(
     name="hifc",
     help="Human insight from contexts CLI.",
     no_args_is_help=True,
 )
+app.add_typer(ingest_app, name="ingest")
+app.add_typer(persona_app, name="persona")
 
 
 def _version_callback(value: bool) -> None:

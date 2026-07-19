@@ -1,0 +1,25 @@
+{
+  "source_id": "src-178fc46da3e78665",
+  "person_id": "naval-ravikant",
+  "content_hash": "178fc46da3e78665b40011b4967de5579b619797082a5c00e63161afd92a3a21",
+  "source_type": "interview",
+  "origin": "paste",
+  "title": "The Naval Ravikant Podcast (excerpt)",
+  "author_perspective": "first_person",
+  "published_at": "2019-01-15",
+  "retrieved_at": "2026-07-19T12:32:52.803616Z",
+  "language": "ja",
+  "raw_text": "Happiness is a choice you make and a skill you develop. The mind can be trained just like the body can be trained. Desire is a contract you make with yourself to be unhappy until you get what you want. I think most of our habits, good and bad, are just a proxy for happiness. We think if we do this thing we will be happy, but happiness is something you have to practice, it's a state that you have to learn to just be in.",
+  "chunks": [
+    {
+      "chunk_id": "src-178fc46da3e78665-s1",
+      "text": "Happiness is a choice you make and a skill you develop. The mind can be trained just like the body can be trained. Desire is a contract you make with yourself to be unhappy until you get what you want.",
+      "locator": "sentence:1"
+    },
+    {
+      "chunk_id": "src-178fc46da3e78665-s2",
+      "text": "I think most of our habits, good and bad, are just a proxy for happiness. We think if we do this thing we will be happy, but happiness is something you have to practice, it's a state that you have to learn to just be in.",
+      "locator": "sentence:2"
+    }
+  ]
+}

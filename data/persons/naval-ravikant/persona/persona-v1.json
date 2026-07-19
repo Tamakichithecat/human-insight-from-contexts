@@ -1,0 +1,216 @@
+{
+  "person_id": "naval-ravikant",
+  "persona_version": 1,
+  "generated_at": "2026-07-19T12:35:43.819189Z",
+  "generator": {
+    "model_id": "claude",
+    "prompt_version": "persona-extract-v1+persona-synthesize-v1",
+    "pipeline_version": "0.1.0"
+  },
+  "source_manifest": [
+    {
+      "source_id": "src-178fc46da3e78665",
+      "content_hash": "178fc46da3e78665b40011b4967de5579b619797082a5c00e63161afd92a3a21"
+    },
+    {
+      "source_id": "src-99823848e336303d",
+      "content_hash": "99823848e336303d60305c127fd8437fd78754ea7b84d1ea6c527729d9211a6e"
+    }
+  ],
+  "core_values": [
+    {
+      "claim_id": "claim-core_values-001",
+      "statement": "この人物は自己決定を中核的な価値として強く重視している。幸福を自ら選択・訓練するスキルと捉え、時間を切り売りせずエクイティを所有して経済的自由を得るべきと述べ、社会が訓練できない固有の知識(specific knowledge)を持つことで代替不可能な独立性を保つことを一貫して主張している。",
+      "theory_tag": "schwartz:self_direction",
+      "confidence": {
+        "score": 0.0948306925854405,
+        "band": "low",
+        "n_evidence": 4,
+        "n_sources": 2,
+        "single_source": false,
+        "contradiction_present": false
+      },
+      "evidence_refs": [
+        "src-178fc46da3e78665-ev001",
+        "src-178fc46da3e78665-ev002",
+        "src-99823848e336303d-ev003",
+        "src-99823848e336303d-ev007"
+      ],
+      "temporal_note": null
+    },
+    {
+      "claim_id": "claim-core_values-002",
+      "statement": "この人物は快楽・欲望の追求を幸福の源泉とは見なしていない。欲望を「手に入れるまで不幸でいるという自分自身との契約」と定義しており、感覚的満足や欲求充足を重視する価値観(hedonism)を明確に否定する立場をとっている。",
+      "theory_tag": "schwartz:hedonism",
+      "confidence": {
+        "score": 0.0,
+        "band": "low",
+        "n_evidence": 1,
+        "n_sources": 1,
+        "single_source": true,
+        "contradiction_present": true
+      },
+      "evidence_refs": [
+        "src-178fc46da3e78665-ev003"
+      ],
+      "temporal_note": null
+    },
+    {
+      "claim_id": "claim-core_values-003",
+      "statement": "この人物は社会的地位や他者への優越を目的とすることを否定している。「金や地位ではなく富(wealth)を求めよ」と述べ、ステータス志向の権力価値とは距離を置き、地位よりも自由をもたらす資産の獲得を重視している。",
+      "theory_tag": "schwartz:power",
+      "confidence": {
+        "score": 0.0,
+        "band": "low",
+        "n_evidence": 1,
+        "n_sources": 1,
+        "single_source": true,
+        "contradiction_present": true
+      },
+      "evidence_refs": [
+        "src-99823848e336303d-ev001"
+      ],
+      "temporal_note": null
+    },
+    {
+      "claim_id": "claim-core_values-004",
+      "statement": "この人物は「社会が欲しているがまだ手に入れる方法を知らないものをスケールで提供することで豊かになる」と述べており、社会的に価値ある成果を大規模に生み出して成功することを重視する達成志向を持つ。ただし前述のとおり、その成功は地位や他者への優越のためではなく自由の獲得を目的としている。",
+      "theory_tag": "schwartz:achievement",
+      "confidence": {
+        "score": 0.010332356092649597,
+        "band": "low",
+        "n_evidence": 1,
+        "n_sources": 1,
+        "single_source": true,
+        "contradiction_present": false
+      },
+      "evidence_refs": [
+        "src-99823848e336303d-ev004"
+      ],
+      "temporal_note": null
+    }
+  ],
+  "decision_making": [
+    {
+      "claim_id": "claim-decision_making-001",
+      "statement": "この人物は、資産による不労所得・エクイティ所有・スケールする価値提供・複利的な蓄積といった「獲得と向上」を軸に意思決定を行う、明確な促進焦点(promotion focus)を持つ。ただし「欲望は満たされるまで不幸でいる契約だ」という発言(src-178fc46da3e78665-ev003)は欲望駆動の獲得志向と矛盾しており、目標追求そのものは肯定しつつも欲望への執着には批判的距離を置くという、内省を伴った攻めの動機と解釈できる。",
+      "theory_tag": "regulatory_focus:promotion",
+      "confidence": {
+        "score": 0.010028876792131547,
+        "band": "low",
+        "n_evidence": 5,
+        "n_sources": 2,
+        "single_source": false,
+        "contradiction_present": true
+      },
+      "evidence_refs": [
+        "src-99823848e336303d-ev002",
+        "src-99823848e336303d-ev003",
+        "src-99823848e336303d-ev004",
+        "src-99823848e336303d-ev006",
+        "src-178fc46da3e78665-ev003"
+      ],
+      "temporal_note": null
+    }
+  ],
+  "behavioral_patterns": [
+    {
+      "claim_id": "claim-behavioral_patterns-001",
+      "statement": "この人物は、心や幸福は鍛錬・実践によって形成できると捉えており、長期的な複利効果を重視して人間関係やキャリアを設計するなど、高い自己統制と計画性(誠実性)を示している。",
+      "theory_tag": "bigfive:conscientiousness",
+      "confidence": {
+        "score": 0.0948306925854405,
+        "band": "low",
+        "n_evidence": 4,
+        "n_sources": 2,
+        "single_source": false,
+        "contradiction_present": false
+      },
+      "evidence_refs": [
+        "src-178fc46da3e78665-ev002",
+        "src-178fc46da3e78665-ev005",
+        "src-99823848e336303d-ev005",
+        "src-99823848e336303d-ev006"
+      ],
+      "temporal_note": null
+    },
+    {
+      "claim_id": "claim-behavioral_patterns-002",
+      "statement": "この人物は、習慣や幸福の本質を問い直し、訓練では得られない独自の「特有の知識」を追求するなど、既存の枠組みにとらわれない考え方への開放性(開放性)が高い。",
+      "theory_tag": "bigfive:openness",
+      "confidence": {
+        "score": 0.049017132476891684,
+        "band": "low",
+        "n_evidence": 2,
+        "n_sources": 2,
+        "single_source": false,
+        "contradiction_present": false
+      },
+      "evidence_refs": [
+        "src-178fc46da3e78665-ev004",
+        "src-99823848e336303d-ev007"
+      ],
+      "temporal_note": null
+    }
+  ],
+  "needs_concerns": [
+    {
+      "claim_id": "claim-needs_concerns-001",
+      "statement": "この人物は自律性(自己決定)への欲求が非常に強い。幸福を「自分で選び、練習によって身につけるスキル」と捉え、時間を切り売りするのではなく資産やエクイティの所有を通じて経済的自由を得るべきだと一貫して主張しており、人生・経済の両面で他者に依存しない自己決定の状態を最重要視している。",
+      "theory_tag": "scarf:autonomy",
+      "confidence": {
+        "score": 0.0948306925854405,
+        "band": "low",
+        "n_evidence": 4,
+        "n_sources": 2,
+        "single_source": false,
+        "contradiction_present": false
+      },
+      "evidence_refs": [
+        "src-178fc46da3e78665-ev001",
+        "src-178fc46da3e78665-ev005",
+        "src-99823848e336303d-ev002",
+        "src-99823848e336303d-ev003"
+      ],
+      "temporal_note": null
+    },
+    {
+      "claim_id": "claim-needs_concerns-002",
+      "statement": "この人物は他者との相対的な地位(ステータス)への欲求を明示的に否定している。「富を求めよ、金や地位ではなく」と述べ、社会的地位の追求は富(自由をもたらす資産)の追求と区別すべき劣った動機と位置づけており、ステータスは主要な動機づけ要因ではない。",
+      "theory_tag": "scarf:status",
+      "confidence": {
+        "score": 0.0,
+        "band": "low",
+        "n_evidence": 1,
+        "n_sources": 1,
+        "single_source": true,
+        "contradiction_present": true
+      },
+      "evidence_refs": [
+        "src-99823848e336303d-ev001"
+      ],
+      "temporal_note": null
+    },
+    {
+      "claim_id": "claim-needs_concerns-003",
+      "statement": "この人物は長期的で信頼できる人間関係を重視しており、「長期的なゲームを長期的な仲間とプレイできる業界を選べ」と助言している。関係性への欲求は情緒的なつながりというより、持続的な信頼と協力関係が複利的な成果を生むという文脈で表れている。",
+      "theory_tag": "scarf:relatedness",
+      "confidence": {
+        "score": 0.010332356092649597,
+        "band": "low",
+        "n_evidence": 1,
+        "n_sources": 1,
+        "single_source": true,
+        "contradiction_present": false
+      },
+      "evidence_refs": [
+        "src-99823848e336303d-ev005"
+      ],
+      "temporal_note": null
+    }
+  ],
+  "communication_style": [],
+  "information_gaps": [
+    "最新のソースでも90ヶ月前の情報であり、情報が古い可能性があります。"
+  ]
+}
